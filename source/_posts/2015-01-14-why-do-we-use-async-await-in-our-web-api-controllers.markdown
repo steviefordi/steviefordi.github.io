@@ -11,33 +11,35 @@ But what is the reason for this obsession?
 
 This post examines the advantages using async/await in your controllers. I'll also point out when I think it's a bad idea.
 
-###Threads are expensive
-The bottom line is - threads are expensive. They use up a fair amount of memory and slow performance down.
+###Threads are not cheap
+The bottom line is - threads are expensive. They use up a fair amount of memory and too many will hurt the performance of your app.
+
+Context switching (moving one thread out of a core and putting another one in) is a slow process. As one thread is "switched" out, it's data is copied from the CPU cache to RAM. The same happens for the thread coming in, only it's data moves in the opposite direction.
+
+Garbage collection will also take longer the more threads you have. When the garbage collector kicks in, it has to pause every thread and walk it's execution stack. The more threads you have, the more expensive this process is.
 
 The optimum number of threads to have running on one machine is equal to the number of cores in the processor.
 
-Context switching (moving one thread out of a core and putting another one in) is a slow process.
-
-Also garbage collection takes longer the more threads you have. This is because the GC has to pause every thread and walk it's execution stack to find objects for collection.
-
 ###Too many threads and the application doesn't scale
-It follows then that if too many threads are created - your applications' performance will suffer.
+Asp.Net is a multi-threaded environment. Every new request is served on a different thread.
 
-Asp.Net is a multi-threaded environment. Every new request is served on a different thread. That is every time a http request comes in, a spare thread is used to serve that request. If there isn't a spare one available, the thread pool will create another.
+That is, every time a http request comes in, the thread pool checks if there is a thread available. If there isn't, it will have no choice but to create a new one.
 
-The name of the game is to server as many requests as you can, using as few threads as possible.
+For an app to perform optimally, it needs to server as many requests as it can, using as few threads as possible.
 
-###Synchronous IO means threads block
+###Synchronous IO is bad
 
-When your application fires a database request, web request or reads file contents synchronously, the executing thread blocks. It sits there twiddling it's thumbs getting fat on your server's resources waiting for the IO to comoplete.
+If your application performs IO synchronously, the executing thread becomes blocked. It just sits there wasting space, twiddling it's thumbs until the IO is complete.
 
 What happens when another request comes into your application whilst this IO is happening?
 
-A new thread is created!
+A new thread - taking up memory, causing context switches, and slowing garbage collection down - is created.
 
-A new thread taking up precious resources - is created to serve the request. That in turn may then block during some IO whilst another request comes in, meaning another thread is created - and so the cycle continues.
+What if that thread then blocks?
 
-Such an application will keel over when faced with too many requests.
+Another thread - using even more memory, causing even more context switches, and slowing garbage collection even further is created - so the cycle continues.
+
+An Asp.Net application written in this manner will keel over with relatively few requests.
 
 ###Writing non-blocking code
 Wouldn't it be great if we could use an idle thread that is waiting on IO to serve a new request? Well we can! And that is where async/await comes in.
