@@ -1,39 +1,38 @@
 ---
 layout: post
-title: "Why do we use async await in our Web API controllers?"
+title: "Why you should use async/await in your Web API controllers?"
 date: 2015-01-14 05:41:00 +0000
 comments: true
 categories: 
 ---
-These days it seems as though everything you write has to be asynchronous. It's as if everyone has asynchitis.
+These days it seems as though all the code you write has to be asynchronous. It's like if it's not asynchronous, it must be wrong.
 
 But what is the reason for this obsession?
 
-This post examines the advantages using async/await in your controllers.
+This post examines the advantages using async/await in your Web API controllers.
 
 ###Threads are not cheap
-The bottom line is - threads are expensive. They use up a fair amount of memory and too many will hurt the performance of your app.
+The bottom line is - threads are expensive. They use up a fair amount of memory and too many of them will hurt the performance of your app.
 
-Context switching (moving one thread out of a core and putting another one in) is a slow process. As one thread is "switched" out, it's data is copied from the CPU cache to RAM. The same happens for the thread coming in, only it's data moves in the opposite direction.
+Context switching - moving one thread out of a CPU core and putting another one in - is an expensive process. Thread data is copied from the CPU cache to RAM and vice-versa. This takes both time and memory.
 
-Garbage collection will also take longer the more threads you have. When the garbage collector kicks in, it has to pause every thread and walk it's execution stack. The more threads you have, the more expensive this process is.
+The speed of the garbage collector will also be influenced by the number of threads in the process. When the garbage collector kicks in, it has to pause every thread and walk it's execution stack. The more threads you have, the more expensive this process is.
 
 The optimum number of threads to have running on one machine is equal to the number of cores in the processor.
 
 ###Too many threads and the application doesn't scale
 Asp.Net is a multi-threaded environment. Every new request is served on a different thread.
 
-That is, every time a http request comes in, the thread pool checks if there is a thread available. If there isn't, it will have no choice but to create a new one.
+That is, every time a http request comes in, the thread pool checks if there is a thread available. If there isn't, it will have no choice but to create one.
 
 For an app to perform optimally, it needs to server as many requests as it can, using as few threads as possible.
 
 ###Synchronous IO is bad
-
 If your application performs IO synchronously, the executing thread becomes blocked. It just sits there wasting space, twiddling it's thumbs until the IO is complete.
 
-What happens when another request comes into your application whilst this IO is happening?
+Whilst this thread is waiting, another request may mean a new thread has to be created.
 
-A new thread - taking up memory, causing context switches, and slowing garbage collection down - is created.
+A new thread will use up more memory, cause more context switches, and slow garbage collection down.
 
 What if that thread then blocks?
 
@@ -42,16 +41,16 @@ Another thread - using even more memory, causing even more context switches, and
 An Asp.Net application written in this manner will keel over with relatively few requests.
 
 ###Asynchronous IO is good
-So how do we minimize the amount of new threads the thread pool has to create when our web application is busy?
+When IO is executed asynchronously, the thread is realesed when the operation is handed off to the hardware. This means that instead of blocking, the thread can be reused. 
 
-By executing IO asynchronously.
+What you need to do, is construct an **IHttpActionResult** for your controller to use. You can find out how [here](http://www.asp.net/web-api/overview/getting-started-with-aspnet-web-api/action-results).
 
-By convention, methods that execute asynchronously end in the word **async**. By using these methods for IO, the executing thread is released and can be reused to serve another request. When then IO has finished, another thread (possibly the same one) will pick up the work where the call to the async method left off.
+Then, in the ExecuteAsync() method of your IHttpActionResult, perform IO using a method that ends in **async**. So, for instance, if you're using Entity Framework you might call **ToListAsync()** or **SumAsync()**.
 
-This totally maximises the server's resources and the application will handle exponentially more concurrent requests than before.
+Do this and your app will handle load far better than it otherwise would have.
 
 ###Summary
-If you want your web api application to scale, make sure you are writing asynchronous IO code. Pay attention when you're code:
+If you want your Web API application to scale, make sure you are writing asynchronous IO code. Pay attention when you're code:
 
 - Reads or writes to a file
 - Makes a database call
