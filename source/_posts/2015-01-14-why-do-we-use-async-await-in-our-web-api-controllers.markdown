@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Why you should use async/await in your Web API controllers?"
+title: "Why You Should Use Async/Await in your Web API controllers?"
 date: 2015-01-14 05:41:00 +0000
 comments: true
 categories: 
@@ -56,5 +56,5 @@ If you want your Web API application to scale, make sure you are writing asynchr
 - Makes a database call
 - Performs a web request
 
-If the API you are using has a version of the method you need eding in **async** - USE IT!
+If the API you are using has a version of the method you need ending in **async** - USE IT!
 
